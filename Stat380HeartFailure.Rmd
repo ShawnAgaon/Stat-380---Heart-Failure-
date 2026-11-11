@@ -1,0 +1,14 @@
+---
+title: "FinalProject"
+author: "Tim Smith, Shawn Agaon, Ethan Agaon, Aiden Murphy"
+date: "2026-11-11"
+output: pdf_document
+---
+
+### EDA
+
+### Logistic Regress
+
+### SVM
+
+### Comparing Results
