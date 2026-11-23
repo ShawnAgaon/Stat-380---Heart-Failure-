@@ -8,9 +8,24 @@ misclassified training points are penalized, and `gamma` controls how flexible
 the radial boundary is. Predictors are standardized automatically
 (`scale = TRUE`), which matters because SVMs are distance-based.
 
+```{r svm-setup}
+# Load packages needed for SVM modeling and evaluation
+library(e1071)
+library(caret)
+library(pROC)
+library(ggplot2)
+
+# Convert response to a factor for SVM classification
+train_svm <- train
+test_svm <- test
+
+train_svm$HeartDisease <- as.factor(train_svm$HeartDisease)
+test_svm$HeartDisease <- as.factor(test_svm$HeartDisease)
+```
+
 ```{r svm-tune-linear}
 set.seed(380)
-tune_linear <- tune(svm, HeartDisease ~ ., data = train, kernel = "linear",
+tune_linear <- tune(svm, HeartDisease ~ ., data = train_svm, kernel = "linear",
                     ranges = list(cost = c(0.01, 0.1, 1, 10)),
                     tunecontrol = tune.control(cross = 10))
 summary(tune_linear)
@@ -18,7 +33,7 @@ summary(tune_linear)
 
 ```{r svm-tune-radial}
 set.seed(380)
-tune_radial <- tune(svm, HeartDisease ~ ., data = train, kernel = "radial",
+tune_radial <- tune(svm, HeartDisease ~ ., data = train_svm, kernel = "radial",
                     ranges = list(cost  = c(0.1, 1, 10, 100),
                                   gamma = c(0.001, 0.01, 0.05, 0.1, 0.5)),
                     tunecontrol = tune.control(cross = 10))
@@ -52,25 +67,28 @@ Next we refit both tuned models on the full training set with
 `probability = TRUE`, so they also output probabilities for the ROC curve.
 
 ```{r svm-final}
-svm_linear <- svm(HeartDisease ~ ., data = train, kernel = "linear",
-                  cost = tune_linear$best.parameters$cost, probability = TRUE)
-svm_radial <- svm(HeartDisease ~ ., data = train, kernel = "radial",
+svm_linear <- svm(HeartDisease ~ ., data = train_svm, kernel = "linear",
+                  cost = tune_linear$best.parameters$cost,
+                  scale = TRUE, probability = TRUE)
+
+svm_radial <- svm(HeartDisease ~ ., data = train_svm, kernel = "radial",
                   cost  = tune_radial$best.parameters$cost,
                   gamma = tune_radial$best.parameters$gamma,
-                  probability = TRUE)
+                  scale = TRUE, probability = TRUE)
 
 svm_eval <- function(model, name) {
-  pred <- predict(model, test, probability = TRUE)
+  pred <- predict(model, test_svm, probability = TRUE)
   prob <- attr(pred, "probabilities")[, "1"]
-  cm   <- confusionMatrix(pred, test$HeartDisease, positive = "1")
+  cm   <- confusionMatrix(pred, test_svm$HeartDisease, positive = "1")
   list(name = name, pred = pred, prob = prob, cm = cm,
-       roc = roc(test$HeartDisease, prob, levels = c("0", "1"),
+       roc = roc(test_svm$HeartDisease, prob, levels = c("0", "1"),
                  direction = "<", quiet = TRUE))
 }
+
 res_linear <- svm_eval(svm_linear, "SVM (linear)")
 res_radial <- svm_eval(svm_radial, "SVM (radial)")
 
-res_radial$cm$table   # confusion matrix: rows = predicted, columns = actual
+res_radial$cm$table   # Confusion matrix: rows = predicted, columns = actual
 ```
 
 ```{r svm-results}
@@ -81,9 +99,11 @@ get_metrics <- function(r) {
              Specificity = round(r$cm$byClass["Specificity"], 3),
              AUC         = round(as.numeric(auc(r$roc)), 3))
 }
+
 baseline <- data.frame(Model = "Baseline (always 'disease')",
-                       Accuracy = round(mean(test$HeartDisease == "1"), 3),
+                       Accuracy = round(mean(test_svm$HeartDisease == "1"), 3),
                        Sensitivity = 1, Specificity = 0, AUC = 0.5)
+
 svm_results <- rbind(baseline, get_metrics(res_linear), get_metrics(res_radial))
 rownames(svm_results) <- NULL
 svm_results
@@ -93,16 +113,18 @@ svm_results
 roc_list <- setNames(list(res_radial$roc, res_linear$roc),
                      c(sprintf("Radial (AUC = %.3f)", auc(res_radial$roc)),
                        sprintf("Linear (AUC = %.3f)", auc(res_linear$roc))))
+
 ggroc(roc_list, legacy.axes = TRUE, linewidth = 1) +
   geom_abline(linetype = "dashed", colour = "grey") +
   labs(title = "SVM ROC curves (test set)", x = "1 - Specificity",
        y = "Sensitivity", colour = NULL) +
-  theme_minimal() + theme(legend.position = c(0.7, 0.2))
+  theme_minimal() +
+  theme(legend.position = c(0.7, 0.2))
 ```
 
 ```{r svm-export}
 # Save for the "Comparing Results" section
-svm_test_probs <- data.frame(actual = test$HeartDisease,
+svm_test_probs <- data.frame(actual = test_svm$HeartDisease,
                              svm_linear = res_linear$prob,
                              svm_radial = res_radial$prob)
 ```
