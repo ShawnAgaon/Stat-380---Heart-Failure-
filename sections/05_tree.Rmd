@@ -1,8 +1,153 @@
 ### Decision Tree
 
-<!-- Name every code chunk with a unique label starting with "tree-",
-     e.g. ```{r tree-fit}. Duplicate chunk names across section files stop the knit. -->
+A decision tree predicts whether a patient has heart disease by splitting
+the data into groups based on clinical predictors. At each split, the tree
+selects a variable and cutoff that best separates patients with and without
+heart disease.
 
-<!-- TODO (decision tree): Fit with rpart, prune using printcp()/plotcp(), plot with rpart.plot, and report the same test-set metrics. Use the `train` and `test` data from Data Preparation. -->
+Decision trees can capture nonlinear relationships and interactions between
+predictors. However, large trees may overfit the training data.
 
-*Section in progress.*
+We use 10-fold cross-validation to select the complexity parameter (`cp`),
+which controls the size of the tree. We then prune the tree and evaluate
+its performance on the same testing set used for logistic regression and SVM.
+
+```{r tree-setup}
+# Load packages needed for tree modeling and evaluation
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(pROC)
+library(ggplot2)
+
+# Convert response to a factor for classification
+train_tree <- train
+test_tree <- test
+
+train_tree$HeartDisease <- as.factor(train_tree$HeartDisease)
+test_tree$HeartDisease <- as.factor(test_tree$HeartDisease)
+```
+
+```{r tree-fit}
+# Fit an initial classification tree
+# cp = 0 allows a larger tree before pruning
+tree_model <- rpart(
+  HeartDisease ~ .,
+  data = train_tree,
+  method = "class",
+  control = rpart.control(cp = 0, xval = 10)
+)
+
+# View the cross-validation results
+printcp(tree_model)
+```
+
+```{r tree-cv-plot, fig.height=4, fig.width=5}
+# Plot cross-validation error against tree complexity
+plotcp(tree_model)
+```
+
+```{r tree-prune}
+# Select cp with the lowest cross-validation error
+best_cp <- tree_model$cptable[
+  which.min(tree_model$cptable[, "xerror"]), "CP"
+]
+
+# Prune the tree using the selected cp
+tree_final <- prune(tree_model, cp = best_cp)
+
+# View the selected complexity parameter
+best_cp
+```
+
+```{r tree-plot, fig.height=5, fig.width=8}
+# Plot the final pruned decision tree
+rpart.plot(
+  tree_final,
+  type = 2,
+  extra = 104,
+  fallen.leaves = TRUE,
+  main = "Pruned Decision Tree for Heart Disease"
+)
+```
+
+Next we use the pruned tree to predict heart disease on the testing set.
+
+```{r tree-final}
+# Predict probabilities of heart disease
+tree_prob <- predict(
+  tree_final,
+  newdata = test_tree,
+  type = "prob"
+)[, "1"]
+
+# Classify using a 0.50 probability threshold
+tree_pred <- ifelse(tree_prob >= 0.5, 1, 0)
+
+# Convert predictions to a factor
+tree_pred <- factor(tree_pred, levels = c(0, 1))
+
+# Create confusion matrix
+tree_cm <- confusionMatrix(
+  tree_pred,
+  test_tree$HeartDisease,
+  positive = "1"
+)
+
+# Calculate ROC curve
+tree_roc <- roc(
+  test_tree$HeartDisease,
+  tree_prob,
+  levels = c("0", "1"),
+  direction = "<",
+  quiet = TRUE
+)
+
+# View confusion matrix
+tree_cm$table
+```
+
+```{r tree-results}
+# Summarize model performance
+tree_results <- data.frame(
+  Model       = "Decision Tree",
+  Accuracy    = round(tree_cm$overall["Accuracy"], 3),
+  Sensitivity = round(tree_cm$byClass["Sensitivity"], 3),
+  Specificity = round(tree_cm$byClass["Specificity"], 3),
+  AUC         = round(as.numeric(auc(tree_roc)), 3)
+)
+
+# Include the same baseline as the other models
+baseline <- data.frame(
+  Model       = "Baseline (always 'disease')",
+  Accuracy    = round(mean(test_tree$HeartDisease == "1"), 3),
+  Sensitivity = 1,
+  Specificity = 0,
+  AUC         = 0.5
+)
+
+tree_results <- rbind(baseline, tree_results)
+rownames(tree_results) <- NULL
+
+tree_results
+```
+
+```{r tree-roc, fig.height=4, fig.width=5}
+# Plot decision tree ROC curve
+ggroc(tree_roc, legacy.axes = TRUE, linewidth = 1) +
+  geom_abline(linetype = "dashed", colour = "grey") +
+  labs(
+    title = "Decision Tree ROC Curve (Test Set)",
+    x = "1 - Specificity",
+    y = "Sensitivity"
+  ) +
+  theme_minimal()
+```
+
+```{r tree-export}
+# Save predictions for the "Comparing Results" section
+tree_test_probs <- data.frame(
+  actual = test_tree$HeartDisease,
+  tree = tree_prob
+)
+```
