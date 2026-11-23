@@ -1,14 +1,50 @@
 ---
-title: "FinalProject"
+title: "Predicting Heart Disease with Statistical Learning"
 author: "Tim Smith, Shawn Agaon, Ethan Agaon, Aiden Murphy"
 date: "2026-11-11"
 output: pdf_document
 ---
 
-### EDA
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 7, fig.height = 4)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(e1071)   # SVM
+library(caret)   # confusionMatrix()
+library(pROC)    # ROC curves / AUC
+```
 
-### Logistic Regress
+<!--
+This file only holds the title and setup. Each section lives in its own
+file in the sections/ folder. Edit your section file, then knit THIS file to
+build the full report.
+-->
 
-### SVM
+```{r child = "sections/01_introduction.Rmd"}
+```
 
-### Comparing Results
+```{r child = "sections/02_data_prep.Rmd"}
+```
+
+```{r child = "sections/03_eda.Rmd"}
+```
+
+```{r child = "sections/04_logistic.Rmd"}
+```
+
+```{r child = "sections/05_tree.Rmd"}
+```
+
+```{r child = "sections/06_svm.Rmd"}
+```
+
+```{r child = "sections/07_pca.Rmd"}
+```
+
+```{r child = "sections/08_comparison.Rmd"}
+```
+
+```{r child = "sections/09_conclusion.Rmd"}
+```

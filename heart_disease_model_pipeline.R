@@ -5,14 +5,17 @@ library(rpart)  # Decision tree
 library(e1071)  # Support Vector Machine
 
 # Load the dataset
-heart <- read.csv("https://raw.githubusercontent.com/imteekay/heart-failure-prediction/main/heart.csv")
+heart <- read.csv("https://raw.githubusercontent.com/ShawnAgaon/Stat-380---Heart-Failure-/main/heart.csv")
 
 
 # 2. Data Preprocessing
 
 
-# Remove observations with missing values
-heart <- na.omit(heart)
+# Cholesterol = 0 and RestingBP = 0 are impossible -> treat as missing
+# (same cleaning as the Data Preparation section of Stat380HeartFailure.Rmd)
+heart$chol_missing <- as.integer(heart$Cholesterol == 0)
+heart$Cholesterol[heart$Cholesterol == 0] <- NA
+heart$RestingBP[heart$RestingBP == 0] <- NA
 
 # Convert categorical predictors to factors
 heart$Sex <- as.factor(heart$Sex)
@@ -32,7 +35,7 @@ heart$FastingBS <- as.factor(heart$FastingBS)
 # 3. Training and Testing Split
 
 
-set.seed(123456)
+set.seed(380)
 
 # Use 80% for training and 20% for testing
 # Stratifed sampling to preserve the proportions of 0s and 1s
@@ -49,6 +52,14 @@ train_indices <- c(train_0, train_1)
 # Create training and testing datasets
 train <- heart[train_indices, ]
 test <- heart[-train_indices, ]
+
+# Impute missing values with TRAINING medians only
+chol_med <- median(train$Cholesterol, na.rm = TRUE)
+bp_med <- median(train$RestingBP, na.rm = TRUE)
+train$Cholesterol[is.na(train$Cholesterol)] <- chol_med
+test$Cholesterol[is.na(test$Cholesterol)] <- chol_med
+train$RestingBP[is.na(train$RestingBP)] <- bp_med
+test$RestingBP[is.na(test$RestingBP)] <- bp_med
 
 
 # 4. Logistic Regression
