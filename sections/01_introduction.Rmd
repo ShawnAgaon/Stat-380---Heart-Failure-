@@ -1,0 +1,8 @@
+### Introduction
+
+<!-- Name every code chunk with a unique label starting with "intro-",
+     e.g. ```{r intro-fit}. Duplicate chunk names across section files stop the knit. -->
+
+<!-- TODO: dataset source, research questions, and hypothesis (copy from the proposal). -->
+
+*Section in progress.*
