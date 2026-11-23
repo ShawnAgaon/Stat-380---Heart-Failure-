@@ -1,0 +1,8 @@
+### Principal Component Analysis (PCA)
+
+<!-- Name every code chunk with a unique label starting with "pca-",
+     e.g. ```{r pca-fit}. Duplicate chunk names across section files stop the knit. -->
+
+<!-- TODO (PCA): prcomp() on the scaled predictors, scree plot, PC1 vs. PC2 colored by HeartDisease, and optionally logistic regression on the first few PCs. Use the `train` and `test` data from Data Preparation. -->
+
+*Section in progress.*

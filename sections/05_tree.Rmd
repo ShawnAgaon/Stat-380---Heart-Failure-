@@ -1,0 +1,8 @@
+### Decision Tree
+
+<!-- Name every code chunk with a unique label starting with "tree-",
+     e.g. ```{r tree-fit}. Duplicate chunk names across section files stop the knit. -->
+
+<!-- TODO (decision tree): Fit with rpart, prune using printcp()/plotcp(), plot with rpart.plot, and report the same test-set metrics. Use the `train` and `test` data from Data Preparation. -->
+
+*Section in progress.*

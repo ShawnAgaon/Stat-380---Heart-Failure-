@@ -1,0 +1,122 @@
+### Support Vector Machine (SVM)
+
+An SVM finds the boundary that separates the two classes with the widest margin.
+A **linear kernel** fits a straight boundary, much like logistic regression. A
+**radial (RBF) kernel** can fit curved boundaries. We tune both with 10-fold
+cross-validation on the training set only. `cost` controls how heavily
+misclassified training points are penalized, and `gamma` controls how flexible
+the radial boundary is. Predictors are standardized automatically
+(`scale = TRUE`), which matters because SVMs are distance-based.
+
+```{r svm-tune-linear}
+set.seed(380)
+tune_linear <- tune(svm, HeartDisease ~ ., data = train, kernel = "linear",
+                    ranges = list(cost = c(0.01, 0.1, 1, 10)),
+                    tunecontrol = tune.control(cross = 10))
+summary(tune_linear)
+```
+
+```{r svm-tune-radial}
+set.seed(380)
+tune_radial <- tune(svm, HeartDisease ~ ., data = train, kernel = "radial",
+                    ranges = list(cost  = c(0.1, 1, 10, 100),
+                                  gamma = c(0.001, 0.01, 0.05, 0.1, 0.5)),
+                    tunecontrol = tune.control(cross = 10))
+tune_radial$best.parameters
+tune_radial$best.performance   # CV error rate
+```
+
+```{r svm-tune-plot, fig.height=3.5}
+ggplot(tune_radial$performances,
+       aes(factor(gamma), factor(cost), fill = error)) +
+  geom_tile() +
+  geom_text(aes(label = round(error, 3)), size = 3) +
+  scale_fill_gradient(low = "white", high = "firebrick") +
+  labs(title = "Radial SVM: 10-fold CV error by cost and gamma",
+       x = "gamma", y = "cost", fill = "CV error") +
+  theme_minimal()
+```
+
+```{r svm-cv-compare}
+data.frame(
+  kernel   = c("linear", "radial"),
+  best     = c(paste("cost =", tune_linear$best.parameters$cost),
+               paste("cost =", tune_radial$best.parameters$cost,
+                     ", gamma =", tune_radial$best.parameters$gamma)),
+  CV_error = round(c(tune_linear$best.performance,
+                     tune_radial$best.performance), 3)
+)
+```
+
+Next we refit both tuned models on the full training set with
+`probability = TRUE`, so they also output probabilities for the ROC curve.
+
+```{r svm-final}
+svm_linear <- svm(HeartDisease ~ ., data = train, kernel = "linear",
+                  cost = tune_linear$best.parameters$cost, probability = TRUE)
+svm_radial <- svm(HeartDisease ~ ., data = train, kernel = "radial",
+                  cost  = tune_radial$best.parameters$cost,
+                  gamma = tune_radial$best.parameters$gamma,
+                  probability = TRUE)
+
+svm_eval <- function(model, name) {
+  pred <- predict(model, test, probability = TRUE)
+  prob <- attr(pred, "probabilities")[, "1"]
+  cm   <- confusionMatrix(pred, test$HeartDisease, positive = "1")
+  list(name = name, pred = pred, prob = prob, cm = cm,
+       roc = roc(test$HeartDisease, prob, levels = c("0", "1"),
+                 direction = "<", quiet = TRUE))
+}
+res_linear <- svm_eval(svm_linear, "SVM (linear)")
+res_radial <- svm_eval(svm_radial, "SVM (radial)")
+
+res_radial$cm$table   # confusion matrix: rows = predicted, columns = actual
+```
+
+```{r svm-results}
+get_metrics <- function(r) {
+  data.frame(Model       = r$name,
+             Accuracy    = round(r$cm$overall["Accuracy"], 3),
+             Sensitivity = round(r$cm$byClass["Sensitivity"], 3),
+             Specificity = round(r$cm$byClass["Specificity"], 3),
+             AUC         = round(as.numeric(auc(r$roc)), 3))
+}
+baseline <- data.frame(Model = "Baseline (always 'disease')",
+                       Accuracy = round(mean(test$HeartDisease == "1"), 3),
+                       Sensitivity = 1, Specificity = 0, AUC = 0.5)
+svm_results <- rbind(baseline, get_metrics(res_linear), get_metrics(res_radial))
+rownames(svm_results) <- NULL
+svm_results
+```
+
+```{r svm-roc, fig.height=4, fig.width=5}
+roc_list <- setNames(list(res_radial$roc, res_linear$roc),
+                     c(sprintf("Radial (AUC = %.3f)", auc(res_radial$roc)),
+                       sprintf("Linear (AUC = %.3f)", auc(res_linear$roc))))
+ggroc(roc_list, legacy.axes = TRUE, linewidth = 1) +
+  geom_abline(linetype = "dashed", colour = "grey") +
+  labs(title = "SVM ROC curves (test set)", x = "1 - Specificity",
+       y = "Sensitivity", colour = NULL) +
+  theme_minimal() + theme(legend.position = c(0.7, 0.2))
+```
+
+```{r svm-export}
+# Save for the "Comparing Results" section
+svm_test_probs <- data.frame(actual = test$HeartDisease,
+                             svm_linear = res_linear$prob,
+                             svm_radial = res_radial$prob)
+```
+
+**SVM interpretation:** both SVMs clearly beat the baseline, with 88.6% test
+accuracy versus 55.4%. Sensitivity is 0.89, so they catch about 9 of every 10
+heart disease cases; specificity is 0.88 and AUC is 0.93. In cross-validation
+the linear kernel did slightly better than the radial one (12.9% vs. 13.2%
+error), and on the test set the two give identical results. Tuning also picked
+the smallest gamma (0.001) for the radial kernel, which makes its boundary
+nearly straight. In other words, the flexible kernel gains nothing here,
+which suggests the relationship between the predictors and heart disease is
+close to linear. That supports using the more interpretable logistic
+regression. Unlike
+logistic regression, an SVM gives no coefficients or odds ratios, so it tells
+us how well heart disease *can* be predicted but not *which* variables drive
+the prediction.

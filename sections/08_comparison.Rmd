@@ -1,0 +1,10 @@
+### Comparing Results
+
+<!-- Name every code chunk with a unique label starting with "compare-",
+     e.g. ```{r compare-fit}. Duplicate chunk names across section files stop the knit. -->
+
+<!-- TODO: one table with every model (baseline, logistic, tree, SVM, PCA) and
+accuracy, sensitivity, specificity, AUC on the test set, plus all ROC curves
+on one plot. SVM probabilities are saved in `svm_test_probs`. -->
+
+*Section in progress.*

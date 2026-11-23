@@ -1,0 +1,8 @@
+### Logistic Regression
+
+<!-- Name every code chunk with a unique label starting with "logit-",
+     e.g. ```{r logit-fit}. Duplicate chunk names across section files stop the knit. -->
+
+<!-- TODO (logistic regression): Fit glm(HeartDisease ~ ., data = train, family = binomial); report summary(), odds ratios, and test-set accuracy, sensitivity, specificity, and AUC. Use the `train` and `test` data from Data Preparation. -->
+
+*Section in progress.*
