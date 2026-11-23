@@ -1,6 +1,6 @@
 # STAT 380 Final Project: Predicting Heart Disease
 
-**Team:** Tim Smith, Shawn Agaon, Ethan Agaon, Aiden Murphy
+**Team:** Tim Smith, Shawn Agaon, Ethan Agaon, Aidan Murphy
 
 We test whether statistical learning models can predict heart disease
 significantly better than a baseline, using the
