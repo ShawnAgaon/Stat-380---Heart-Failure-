@@ -1,8 +1,88 @@
-### Introduction
+## Project Overview
 
-<!-- Name every code chunk with a unique label starting with "intro-",
-     e.g. ```{r intro-fit}. Duplicate chunk names across section files stop the knit. -->
+Cardiovascular disease is a major public health concern, which is why identifying individuals who are at risk of heart disease is an important excercise. Clinical measurements and patient characteristics may provide valuable information about the presence of heart disease, but different statistical models can vary in how they identify and interpret these relationships.
 
-<!-- TODO: dataset source, research questions, and hypothesis (copy from the proposal). -->
+The project investigates the effectiveness of several statistical learning methods in predicting heart disease. Our primary objective is to compare the performance of **Logistic Regression, Decision Trees, and Support Vector Machines (SVM)** while examining the trade-offs between model accuracy, complexity, and interpretability.
 
-*Section in progress.*
+In addition to modeling, we use **Exploratory Data Analysis (EDA)** and **Principal Component Analysis (PCA)** to better understand relationships among clinical predictors, identify patterns in the data, and evaluate whether a lower-dimensional representation captures meaningful variation.
+
+## Research Question
+
+**How effectively can clinical and demographic characteristics predict the presence of heart disease, and which statistical learning method provides the strongest balance of predictive performance and interpretability?**
+
+Our analysis also considers several additional questions:
+
+- Which clinical characteristics are most strongly associated with heart disease?
+- Do nonlinear classification methods outperform logistic regression?
+- Can dimensionality reduction reveal patterns in patient characteristics?
+- How do the models compare in their ability to identify patients with heart disease while minimizing incorrect classifications?
+
+## Dataset
+
+We use the [Heart Failure Prediction Dataset](https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction), which combines observations from several existing heart disease datasets.
+
+The dataset contains **918 patient observations, 11 clinical predictors, and one binary response variable**, `HeartDisease`, indicating whether heart disease is present (1) or absent (0).
+
+Predictors include patient age, sex, chest pain type, resting blood pressure, cholesterol, fasting blood sugar, resting electrocardiogram results, maximum heart rate, exercise-induced angina, ST depression, and ST slope.
+
+Prior to modeling, we address zero-valued clinical measurements, convert categorical predictors into factors, and divide the observations into stratified training (80%) and testing (20%) sets. Missing measurements are imputed using medians calculated exclusively from the training data.
+
+## Methodology
+
+We selected complementary statistical learning techniques to examine both the relationships within the data and their predictive value.
+
+### 1. Exploratory Data Analysis (EDA)
+
+EDA provides an initial understanding of the dataset. We examine how predictor characteristics differ between patients with and without heart disease and identify potential relationships, unusual observations, and data quality concerns.
+
+### 2. Principal Component Analysis (PCA)
+
+PCA is used to investigate relationships among predictors and determine whether a smaller number of components can explain a meaningful portion of the variation in patient characteristics. Unlike the supervised classification models, PCA does not use the heart disease outcome when constructing components.
+
+### 3. Logistic Regression
+
+Logistic regression serves as our primary interpretable classification model. Because the response variable is binary, logistic regression provides a natural framework for estimating the probability that a patient has heart disease.
+
+### 4. Decision Tree
+
+Decision trees provide a flexible, interpretable alternative that divides observations into groups using sequential predictor-based rules. Unlike logistic regression, decision trees can capture nonlinear relationships and interactions.
+
+### 5. Support Vector Machine (SVM)
+
+Support Vector Machines provide an additional classification approach focused on identifying a decision boundary between patients with and without heart disease. We evaluate both linear and radial kernels to investigate whether allowing more flexible decision boundaries improves predictive performance. Model hyperparameters are selected using 10-fold cross-validation on the training data.
+
+## Model Evaluation
+
+All predictive models use the same training and testing observations to ensure consistent comparisons. Model development and tuning are performed using the training data, while final predictive performance is evaluated on the held-out testing set.
+
+We compare models using:
+
+- **Accuracy:** Overall proportion of correctly classified patients
+- **Sensitivity:** Ability to correctly identify patients with heart disease
+- **Specificity:** Ability to correctly identify patients without heart disease
+- **ROC Curves and AUC:** Ability to distinguish between patients with and without heart disease across classification thresholds
+- **Confusion Matrices:** Distribution of correct predictions and classification errors
+
+Because incorrectly identifying a patient with heart disease as healthy may be particularly consequential, we place additional emphasis on sensitivity rather than relying on accuracy alone.
+
+## Project Objective
+
+Ultimately, this project seeks to determine whether more complex classification methods offer meaningful predictive advantages over logistic regression.
+
+Beyond identifying the strongest-performing model, we aim to understand the relationships between clinical characteristics and heart disease, assess the value of different statistical learning approaches, and evaluate the trade-offs between predictive performance and interpretability.
+
+## Tools and Technologies
+
+- **R:** Data preprocessing, statistical analysis, and predictive modeling
+- **rpart:** Decision tree modeling and pruning
+- **e1071:** Support Vector Machine modeling
+- **caret:** Classification performance evaluation
+- **pROC:** ROC curve and AUC analysis
+- **ggplot2:** Data visualization
+- **GitHub:** Version control and project collaboration
+
+## Data Source
+
+fedesoriano. *Heart Failure Prediction Dataset*. Kaggle.
+
+https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction
