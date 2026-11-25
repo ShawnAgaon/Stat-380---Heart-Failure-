@@ -1,0 +1,114 @@
+### Logistic Regression
+
+Logistic regression models the probability that a patient has heart disease
+using the clinical predictors. Unlike linear regression, logistic regression
+is designed for a binary response variable (0 = no heart disease,
+1 = heart disease). It estimates the relationship between the predictors
+and the log-odds of heart disease.
+
+We use all predictors in the initial model and evaluate its ability to
+classify patients using the same training and testing sets as the SVM.
+
+```{r log-setup}
+# Load packages needed for model evaluation
+library(caret)
+library(pROC)
+library(ggplot2)
+```
+
+```{r log-fit}
+# Fit logistic regression using all predictors
+log_model <- glm(
+  HeartDisease ~ .,
+  data = train,
+  family = binomial
+)
+
+# View model coefficients and significance
+summary(log_model)
+```
+
+```{r log-odds}
+# Convert coefficients from log-odds to odds ratios
+odds_ratios <- exp(coef(log_model))
+
+# Display odds ratios
+odds_ratios
+```
+
+The odds ratios help interpret how each predictor relates to the odds of
+heart disease. An odds ratio greater than 1 indicates higher odds, while
+an odds ratio below 1 indicates lower odds, holding other predictors
+constant.
+
+```{r log-final}
+# Predict probabilities on the testing set
+log_prob <- predict(log_model, newdata = test, type = "response")
+
+# Classify using a 0.50 probability threshold
+log_pred <- ifelse(log_prob >= 0.5, 1, 0)
+
+# Convert predictions and actual values to factors
+log_pred <- factor(log_pred, levels = c(0, 1))
+log_actual <- factor(test$HeartDisease, levels = c(0, 1))
+
+# Create confusion matrix
+log_cm <- confusionMatrix(log_pred, log_actual, positive = "1")
+
+# Calculate ROC curve
+log_roc <- roc(
+  log_actual,
+  log_prob,
+  levels = c("0", "1"),
+  direction = "<",
+  quiet = TRUE
+)
+
+# View confusion matrix
+log_cm$table
+```
+
+```{r log-results}
+# Summarize model performance
+log_results <- data.frame(
+  Model       = "Logistic Regression",
+  Accuracy    = round(log_cm$overall["Accuracy"], 3),
+  Sensitivity = round(log_cm$byClass["Sensitivity"], 3),
+  Specificity = round(log_cm$byClass["Specificity"], 3),
+  AUC         = round(as.numeric(auc(log_roc)), 3)
+)
+
+# Include the same baseline as the SVM section
+baseline <- data.frame(
+  Model       = "Baseline (always 'disease')",
+  Accuracy    = round(mean(test$HeartDisease == 1), 3),
+  Sensitivity = 1,
+  Specificity = 0,
+  AUC         = 0.5
+)
+
+log_results <- rbind(baseline, log_results)
+rownames(log_results) <- NULL
+
+log_results
+```
+
+```{r log-roc, fig.height=4, fig.width=5}
+# Plot logistic regression ROC curve
+ggroc(log_roc, legacy.axes = TRUE, linewidth = 1) +
+  geom_abline(linetype = "dashed", colour = "grey") +
+  labs(
+    title = "Logistic Regression ROC Curve (Test Set)",
+    x = "1 - Specificity",
+    y = "Sensitivity"
+  ) +
+  theme_minimal()
+```
+
+```{r log-export}
+# Save predictions for the "Comparing Results" section
+log_test_probs <- data.frame(
+  actual = test$HeartDisease,
+  logistic = log_prob
+)
+```

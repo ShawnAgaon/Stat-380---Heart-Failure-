@@ -1,0 +1,9 @@
+### Conclusion
+
+<!-- Name every code chunk with a unique label starting with "concl-",
+     e.g. ```{r concl-fit}. Duplicate chunk names across section files stop the knit. -->
+
+<!-- TODO: answer the research questions, note limitations (imputed
+cholesterol, data merged from five hospitals). -->
+
+*Section in progress.*

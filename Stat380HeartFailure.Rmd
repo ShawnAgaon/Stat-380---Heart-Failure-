@@ -1,163 +1,52 @@
 ---
-title: "FinalProject"
+title: "Predicting Heart Disease with Statistical Learning"
 author: "Tim Smith, Shawn Agaon, Ethan Agaon, Aiden Murphy"
 date: "2026-11-11"
 output: pdf_document
 ---
 
-### EDA
-
-```{r}
-heart <- read.csv("https://raw.githubusercontent.com/imteekay/heart-failure-prediction/main/heart.csv")
-```
-
-# 2. Data Preprocessing
-
-# Remove observations with missing values
-```{r}
-heart <- na.omit(heart)
-```
-
-# Convert categorical predictors to factors
-```{r}
-heart$Sex <- as.factor(heart$Sex)
-heart$ChestPainType <- as.factor(heart$ChestPainType)
-heart$RestingECG <- as.factor(heart$RestingECG)
-heart$ExerciseAngina <- as.factor(heart$ExerciseAngina)
-heart$ST_Slope <- as.factor(heart$ST_Slope)
-```
-# Convert FastingBS to a factor (binary category)
-```{r}
-heart$FastingBS <- as.factor(heart$FastingBS)
-```
-
-### Logistic Regress
-
-### SVM
-
-### PCA and Kmeans
-
-# Make dummy variables
-
-```{r}
-library(fastDummies)
-dummy_heart<-dummy_cols(heart, select_columns=c("Sex", "ChestPainType","RestingECG", "FastingBS", "ExerciseAngina", "ST_Slope"), remove_first_dummy=T,
-remove_selected_columns = TRUE)
-```
-
-```{r}
-
-scaled_heart_data <- scale( dummy_heart )
-distance <- dist ( scaled_heart_data ) 
-
-twcss<-numeric(10)
-for (k in 1:10) {
-  set.seed(380)
-  km <- kmeans(scaled_heart_data, centers = k, nstart = 25)
-  twcss[k] <- km$tot.withinss
-}
-
-plot(1:10, twcss, type = "b", pch = 19, frame = FALSE,
-     xlab = "Number of clusters K",
-     ylab = "Total Within-Cluster Sum of Squares (TWCSS)",
-     main = "Elbow Method to Choose K")
-
-```
-
-```{r}
-set.seed(380)
-library(cluster)
-avg_sil <- numeric() 
-for (k in 2:10) { 
-  set.seed(1)
-  km <- kmeans(scaled_heart_data, centers = k, nstart = 25)
-  
-  
-  sil <- silhouette(km$cluster, dist(scaled_heart_data))
-  avg_sil[k] <- mean(sil[, 3])  # column 3 is 
-}
-
-# Plot average silhouette width vs K
-plot(2:10, avg_sil[2:10], type = "b", pch = 19, frame = FALSE,
-     xlab = "Number of clusters K",
-     ylab = "Average Silhouette Width",
-     main = "Silhouette Method to Choose K")
-```
-```{r}
-k <- 3
-set.seed(380)  # for reproducibility
-
-# Run kmeans
-km <- kmeans(scaled_heart_data, centers = k, nstart = 25)
-## R will run kmeans nstart number of times with different initialization
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 7, fig.height = 4)
 library(ggplot2)
-# Add cluster assignments to dataframe
-heart_df <- as.data.frame(scaled_heart_data)
-heart_df$cluster <- km$cluster
-head(heart_df)
-km$size  
-km$centers
-```
-# PCA
-
-```{r}
-
-
-pca_heart <- prcomp(
-  scaled_heart_data[, colnames(scaled_heart_data) != "HeartDisease"],
-  scale. = FALSE
-)
-summary(pca_heart)
-```
-```{r}
-eigvals <- pca_heart$sdev^2   # variance explained by each PC
-
-# Scree plot
-plot(eigvals, type = "b", pch = 19,
-     xlab = "Principal Component",
-     ylab = "Eigenvalue (Variance Explained)",
-     main = "Scree Plot")
-```
-```{r}
-pca_heart$rotation
-```
-
-```{r}
-pca_plot_df <- data.frame(
-  PC1 = pca_heart$x[, 1],
-  PC2 = pca_heart$x[, 2],
-  cluster = factor(km$cluster)
-)
-
-# 2. Plot with ggplot2
-ggplot(pca_plot_df, aes(x = PC1, y = PC2, color = cluster)) +
-  geom_point(alpha = 0.7, size = 2.5) +
-  labs(
-    title = "K-Means Clusters on Heart Dataset (PCA Space)",
-    x = "Principal Component 1 (PC1)",
-    y = "Principal Component 2 (PC2)",
-    color = "Cluster"
-  ) +
-  theme_minimal()
-```
-```{r}
-pca_plot_df <- data.frame(
-  PC1 = pca_heart$x[, 1],
-  PC2 = pca_heart$x[, 2],
-  cluster = factor(heart$HeartDisease)
-)
-
-# 2. Plot with ggplot2
-ggplot(pca_plot_df, aes(x = PC1, y = PC2, color = cluster)) +
-  geom_point(alpha = 0.7, size = 2.5) +
-  labs(
-    title = "K-Means Clusters on Heart Dataset (PCA Space)",
-    x = "Principal Component 1 (PC1)",
-    y = "Principal Component 2 (PC2)",
-    color = "Cluster"
-  ) +
-  theme_minimal()
+library(tidyr)
+library(dplyr)
+library(e1071)   # SVM
+library(caret)   # confusionMatrix()
+library(pROC)    # ROC curves / AUC
 ```
 
 
+<!--
+This file only holds the title and setup. Each section lives in its own
+file in the sections/ folder. Edit your section file, then knit THIS file to
+build the full report.
+-->
 
+
+```{r child = "sections/01_introduction.Rmd"}
+```
+
+```{r child = "sections/02_data_prep.Rmd"}
+```
+
+```{r child = "sections/03_eda.Rmd"}
+```
+
+```{r child = "sections/04_logistic.Rmd"}
+```
+
+```{r child = "sections/05_tree.Rmd"}
+```
+
+```{r child = "sections/06_svm.Rmd"}
+```
+
+```{r child = "sections/07_pca.Rmd"}
+```
+
+```{r child = "sections/08_comparison.Rmd"}
+```
+
+```{r child = "sections/09_conclusion.Rmd"}
+```

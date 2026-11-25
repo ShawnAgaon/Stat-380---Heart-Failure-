@@ -1,0 +1,89 @@
+### Exploratory Data Analysis (EDA)
+
+The dataset has `r nrow(heart)` patients, 11 predictors, and no missing values
+in the raw file. However, `r sum(heart$chol_missing)` cholesterol readings were
+recorded as 0, which we recoded as missing.
+
+```{r eda-balance, fig.height=3}
+heart_eda <- heart
+heart_eda$HeartDisease <- factor(heart_eda$HeartDisease, labels = c("No", "Yes"))
+
+prop.table(table(heart_eda$HeartDisease))
+
+ggplot(heart_eda, aes(HeartDisease, fill = HeartDisease)) +
+  geom_bar() +
+  labs(title = "Outcome balance", x = "Heart disease", y = "Patients") +
+  theme_minimal() + theme(legend.position = "none")
+```
+
+The classes are fairly balanced (about 55% with heart disease), so accuracy is a
+reasonable metric. The **baseline** of always predicting "heart disease" is
+`r round(100 * mean(heart$HeartDisease), 1)`% accurate. Every model must beat this.
+
+```{r eda-numeric, fig.height=4.5}
+heart_eda %>%
+  select(HeartDisease, Age, RestingBP, Cholesterol, MaxHR, Oldpeak) %>%
+  pivot_longer(-HeartDisease, names_to = "variable", values_to = "value") %>%
+  ggplot(aes(HeartDisease, value, fill = HeartDisease)) +
+  geom_boxplot(na.rm = TRUE) +
+  facet_wrap(~ variable, scales = "free_y") +
+  labs(title = "Numeric predictors by heart disease status", x = NULL, y = NULL) +
+  theme_minimal() + theme(legend.position = "none")
+```
+
+```{r eda-numeric-means}
+heart_eda %>%
+  group_by(HeartDisease) %>%
+  summarise(across(c(Age, RestingBP, Cholesterol, MaxHR, Oldpeak),
+                   ~ round(mean(.x, na.rm = TRUE), 1)))
+```
+
+```{r eda-categorical, fig.height=5}
+heart_eda %>%
+  select(HeartDisease, Sex, ChestPainType, FastingBS, RestingECG,
+         ExerciseAngina, ST_Slope) %>%
+  pivot_longer(-HeartDisease, names_to = "variable", values_to = "level") %>%
+  ggplot(aes(level, fill = HeartDisease)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ variable, scales = "free_x") +
+  labs(title = "Share of patients with heart disease, by category",
+       x = NULL, y = "Proportion", fill = "Heart disease") +
+  theme_minimal()
+```
+
+```{r eda-chol-missing}
+# Is a missing (zero) cholesterol reading itself related to the outcome?
+round(prop.table(table(chol_missing = heart$chol_missing,
+                       HeartDisease = heart$HeartDisease), 1), 3)
+```
+
+```{r eda-corr, fig.height=4}
+num_vars <- c("Age", "RestingBP", "Cholesterol", "MaxHR", "Oldpeak", "HeartDisease")
+corr <- round(cor(heart[num_vars], use = "pairwise.complete.obs"), 2)
+corr
+
+as.data.frame(as.table(corr)) %>%
+  ggplot(aes(Var1, Var2, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq), size = 3) +
+  scale_fill_gradient2(low = "steelblue", mid = "white", high = "firebrick",
+                       limits = c(-1, 1)) +
+  labs(title = "Correlation of numeric variables", x = NULL, y = NULL, fill = "r") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+**EDA takeaways:**
+
+- Patients with heart disease are older on average (55.9 vs. 50.6 years), reach
+  a lower maximum heart rate (128 vs. 148), and have higher Oldpeak, or ST
+  depression (1.3 vs. 0.4). MaxHR and Oldpeak are the numeric variables most
+  correlated with the outcome (r = -0.40 and 0.40).
+- Asymptomatic chest pain (ASY), exercise-induced angina, a flat ST slope, and
+  being male all have much higher rates of heart disease.
+- Cholesterol barely differs between the groups (251 vs. 239) once the zeros
+  are removed, so our hypothesis that it would be a strong predictor looks
+  weak. However, 88% of patients whose cholesterol was recorded as 0 have heart
+  disease, compared with 48% of the rest. These values are not missing at
+  random, so we keep the `chol_missing` indicator as a predictor.
+- No pair of numeric predictors is strongly correlated (all |r| < 0.4), so
+  multicollinearity should not be a major issue.

@@ -1,0 +1,127 @@
+### Principal Component Analysis (PCA)
+
+<!-- Name every code chunk with a unique label starting with "pca-",
+     e.g. ```{r pca-fit}. Duplicate chunk names across section files stop the knit. -->
+
+<!-- TODO (PCA): prcomp() on the scaled predictors, scree plot, PC1 vs. PC2 colored by HeartDisease, and optionally logistic regression on the first few PCs. Use the `train` and `test` data from Data Preparation. -->
+
+### Principal Component Analysis (PCA) and K-Means Clustering
+
+<!-- Name every code chunk with a unique label starting with "pca-",
+     e.g. ```{r pca-fit}. Duplicate chunk names across section files stop
+     the knit. -->
+
+#### Data Preparation for Clustering & PCA
+
+```{r pca-dummies}
+library(fastDummies)
+dummy_heart <- dummy_cols(
+  heart,
+  select_columns = c("Sex", "ChestPainType", "RestingECG", "FastingBS", "ExerciseAngina", "ST_Slope"),
+  remove_first_dummy = TRUE,
+  remove_selected_columns = TRUE
+)
+
+# Scale predictors only (excluding HeartDisease so clustering & PCA are unsupervised)
+scaled_predictors <- scale(dummy_heart[, colnames(dummy_heart) != "HeartDisease"])
+```
+
+#### K-Means Clustering
+
+```{r pca-kmeans-elbow}
+twcss <- numeric(10)
+for (k in 1:10) {
+  set.seed(380)
+  km <- kmeans(scaled_predictors, centers = k, nstart = 25)
+  twcss[k] <- km$tot.withinss
+}
+
+plot(1:10, twcss, type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of clusters K",
+     ylab = "Total Within-Cluster Sum of Squares (TWCSS)",
+     main = "Elbow Method to Choose K")
+```
+
+```{r pca-kmeans-silhouette}
+library(cluster)
+avg_sil <- numeric()
+for (k in 2:10) {
+  set.seed(380)
+  km <- kmeans(scaled_predictors, centers = k, nstart = 25)
+  sil <- silhouette(km$cluster, dist(scaled_predictors))
+  avg_sil[k] <- mean(sil[, 3])
+}
+
+plot(2:10, avg_sil[2:10], type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of clusters K",
+     ylab = "Average Silhouette Width",
+     main = "Silhouette Method to Choose K")
+```
+
+```{r pca-kmeans-fit}
+k <- 3
+set.seed(380)
+km <- kmeans(scaled_predictors, centers = k, nstart = 25)
+
+heart_df <- as.data.frame(scaled_predictors)
+heart_dfcluster <- km$cluster
+km$size
+km$centers
+```
+
+#### Principal Component Analysis (PCA)
+
+```{r pca-fit}
+pca_heart <- prcomp(scaled_predictors, scale. = FALSE)
+summary(pca_heart)
+```
+
+```{r pca-scree}
+eigvals <- pca_heart$sdev^2
+
+plot(eigvals, type = "b", pch = 19,
+     xlab = "Principal Component",
+     ylab = "Eigenvalue (Variance Explained)",
+     main = "Scree Plot")
+```
+
+```{r pca-loadings}
+pca_heart$rotation
+```
+
+```{r pca-plot-clusters}
+pca_plot_df <- data.frame(
+  PC1 = pca_heart$x[, 1],
+  PC2 = pca_heart$x[, 2],
+  cluster = factor(km$cluster)
+)
+
+ggplot(pca_plot_df, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(alpha = 0.7, size = 2.5) +
+  labs(
+    title = "K-Means Clusters on Heart Dataset (PCA Space)",
+    x = "Principal Component 1 (PC1)",
+    y = "Principal Component 2 (PC2)",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+```
+
+```{r pca-plot-disease}
+pca_disease_df <- data.frame(
+  PC1 = pca_heart$x[, 1],
+  PC2 = pca_heart$x[, 2],
+  HeartDisease = factor(heart$HeartDisease)
+)
+
+ggplot(pca_disease_df, aes(x = PC1, y = PC2, color = HeartDisease)) +
+  geom_point(alpha = 0.7, size = 2.5) +
+  labs(
+    title = "Actual Heart Disease Status in PCA Space",
+    x = "Principal Component 1 (PC1)",
+    y = "Principal Component 2 (PC2)",
+    color = "Heart Disease"
+  ) +
+  theme_minimal()
+```
+
