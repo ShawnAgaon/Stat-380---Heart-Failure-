@@ -1,9 +1,65 @@
 ### Conclusion
 
-<!-- Name every code chunk with a unique label starting with "concl-",
-     e.g. ```{r concl-fit}. Duplicate chunk names across section files stop the knit. -->
+**Predicting heart disease.** Clinical and demographic characteristics predict
+heart disease well. On a held-out test set of 184 patients, all three models
+beat the 55.4% baseline accuracy by a wide margin. The SVM was the most
+accurate (88.6%, AUC 0.932), followed by logistic regression (87.5%, AUC 0.930)
+and the decision tree (82.1%, AUC 0.898). Both the SVM and logistic regression
+correctly identified roughly nine of every ten patients with heart disease.
 
-<!-- TODO: answer the research questions, note limitations (imputed
-cholesterol, data merged from five hospitals). -->
+**Do nonlinear methods outperform logistic regression?** No. The radial SVM
+performed identically to the linear SVM, the SVM's advantage over logistic
+regression amounted to a single patient and was not statistically significant,
+and the decision tree was less accurate than logistic regression. The
+relationship between the predictors and heart disease appears to be close to
+linear, so the added flexibility of the tree and the radial kernel did not
+help.
 
-*Section in progress.*
+**Which characteristics matter most?** The models agree. Chest pain type, ST
+slope, exercise-induced angina, ST depression (Oldpeak), and sex were the most
+important predictors. In logistic regression, male patients had about six times
+the odds of heart disease, a flat ST slope more than tripled the odds compared
+to a downward slope, and asymptomatic chest pain was far riskier than the other
+chest pain types (the other types had odds ratios near 0.2). Fasting blood
+sugar and exercise-induced angina roughly doubled to tripled the odds. Our
+original hypothesis that cholesterol would be a strong predictor was not
+supported: once the zero readings were removed, cholesterol was not
+significant. Age, resting blood pressure, maximum heart rate, and resting ECG
+were also not significant after accounting for the other predictors.
+
+**What did PCA and clustering show?** The first two principal components
+explain only about 32% of the variance, and about eight components are needed
+to reach roughly 75%, so the predictors are not well summarized by a few
+dimensions. The first component mostly separates patients with exercise-induced
+angina, a flat ST slope, and high ST depression from those with an upward ST
+slope, higher maximum heart rate, and non-asymptomatic chest pain. K-means
+clustering with three clusters produced one group that was 88% heart disease and
+another that was only 16% heart disease, even though the clustering never saw
+the outcome. This shows the predictors contain real structure related to heart
+disease, but the weak silhouette widths mean the clusters are loosely
+separated.
+
+**Recommendation.** We recommend logistic regression. It performs essentially
+as well as the best model, and it is the only one that also tells us how much
+each clinical variable changes the odds of heart disease. If the goal were to
+miss as few true cases as possible, the best next step would be to lower the
+0.50 classification threshold rather than switch to a more complex model.
+
+**Limitations.**
+
+- *Imputed cholesterol.* A large share of cholesterol readings were recorded as
+  0 and had to be replaced with the training median. A zero reading was itself
+  strongly associated with heart disease, so these values are probably not
+  missing at random, and the cholesterol result should be interpreted cautiously.
+- *Merged data.* The dataset combines patients from five different hospitals, so
+  measurement practices and patient populations may differ, and the results may
+  not generalize to other settings.
+- *Small test set.* With only 184 test patients, each misclassified patient
+  changes accuracy by about half a percentage point. All models were compared on
+  one train/test split, so small differences between the SVM and logistic
+  regression should not be over-interpreted.
+- *Untuned threshold.* We used 0.50 for every model and did not tune it for the
+  higher cost of missing a heart disease case.
+- *Association, not causation.* These models show which characteristics are
+  associated with heart disease, not what causes it, and they are not a
+  substitute for clinical diagnosis.
