@@ -1,3 +1,86 @@
 ### Comparing Results
 
+We compare logistic regression, the pruned decision tree, and the SVM on the
+same 184 test patients (102 with heart disease, 82 without), using the same
+0.50 classification threshold. The baseline of always predicting "disease" is
+55.4% accurate, so every model has to beat that.
 
+| Model | Accuracy | Sensitivity | Specificity | AUC |
+|---|---|---|---|---|
+| Baseline (always "disease") | 0.554 | 1.000 | 0.000 | 0.500 |
+| Logistic Regression | 0.875 | 0.882 | 0.866 | 0.930 |
+| Decision Tree | 0.821 | 0.814 | 0.829 | 0.898 |
+| SVM (linear) | 0.886 | 0.892 | 0.878 | 0.932 |
+| SVM (radial) | 0.886 | 0.892 | 0.878 | 0.932 |
+
+```{r comp-roc, fig.height=4.5, fig.width=6}
+roc_all <- list(log_roc, tree_roc, res_linear$roc)
+names(roc_all) <- c(
+  sprintf("Logistic Regression (AUC = %.3f)", auc(log_roc)),
+  sprintf("Decision Tree (AUC = %.3f)",       auc(tree_roc)),
+  sprintf("SVM (AUC = %.3f)",                  auc(res_linear$roc))
+)
+
+ggroc(roc_all, legacy.axes = TRUE, linewidth = 1) +
+  geom_abline(linetype = "dashed", colour = "grey") +
+  labs(title = "ROC Curves for All Models (Test Set)",
+       x = "1 - Specificity", y = "Sensitivity", colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = c(0.65, 0.2))
+```
+
+**Predictive performance.** All three models are far more accurate than the
+baseline. The SVM is the strongest on every metric (88.6% accuracy, AUC 0.932),
+logistic regression is very close behind (87.5%, AUC 0.930), and the decision
+tree is clearly last (82.1%, AUC 0.898). The gap between the SVM and logistic
+regression is one patient: the SVM makes 21 mistakes on the test set and
+logistic regression makes 23. That difference is not meaningful. A DeLong test
+on the AUCs gives p = 0.74 for logistic regression versus the linear SVM, so we
+cannot say the SVM is better. The tree's AUC is lower than logistic
+regression's by 0.032, which is suggestive but not significant at the 0.05
+level (p = 0.084).
+
+**Linear vs. flexible models.** The radial SVM, which can draw curved
+boundaries, performed identically to the linear SVM on the test set. Cross-
+validation also preferred the linear kernel (12.9% error versus 13.2%) and
+pushed the radial kernel's gamma to the smallest value we tried, which makes
+its boundary nearly straight. The tree can also capture nonlinear effects and
+interactions, yet it did worst. Together this suggests the relationship between
+the clinical predictors and heart disease is close to linear, so extra
+flexibility mostly adds variance rather than accuracy.
+
+**Errors that matter.** Missing a patient who has heart disease is the costlier
+mistake, so sensitivity matters most here. The SVM misses 11 of 102 patients
+with heart disease (sensitivity 0.892), logistic regression misses 12 (0.882),
+and the tree misses 19 (0.814). The tree is the only model that gives a false
+negative in roughly one of every five disease cases.
+
+**Interpretability.** The models differ more in what they tell us than in how
+well they predict:
+
+- *Logistic regression* gives an odds ratio for each predictor. Male sex
+  (odds ratio 6.2), a flat ST slope compared to a downward slope (3.8),
+  fasting blood sugar above 120 mg/dl (2.9), exercise-induced angina (2.0), and
+  each additional unit of ST depression (1.5) all raise the odds of heart
+  disease. Chest pain types other than asymptomatic (ATA, NAP, TA) have odds
+  ratios around 0.2, and an upward ST slope lowers the odds (0.36). A zero
+  cholesterol reading, which we treated as missing, was also strongly
+  associated with disease (odds ratio 5.2). Age, resting blood pressure,
+  cholesterol, maximum heart rate, and resting ECG were not significant once the
+  other predictors were included.
+- *The decision tree* gives simple rules a clinician could follow. It splits
+  first on ST slope, then on chest pain type, ST depression, and maximum heart
+  rate. For example, patients with a flat or downward ST slope and asymptomatic
+  chest pain were classified as having heart disease about 90% of the time. The
+  tree agrees with logistic regression on which variables matter, but a single
+  tree is less stable and has to give the same predicted probability to every
+  patient in a leaf, which limits its AUC.
+- *The SVM* predicts well but gives no coefficients or rules, so it tells us how
+  well heart disease can be predicted without telling us which variables drive
+  the prediction.
+
+**Overall.** The SVM and logistic regression are effectively tied for the best
+predictive performance, and the tree is somewhat worse. Because logistic
+regression matches the SVM while also explaining *why* each patient is
+classified the way they are, it offers the best balance of performance and
+interpretability, and it is the model we would choose.
