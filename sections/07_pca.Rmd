@@ -15,6 +15,16 @@ dummy_heart <- dummy_cols(
   remove_selected_columns = TRUE
 )
 
+dummy_heart$Cholesterol[dummy_heart$Cholesterol == 0] <- NA
+dummy_heart$RestingBP[dummy_heart$RestingBP == 0]     <- NA
+
+# 2. Impute with dataset medians
+chol_med <- median(dummy_heart$Cholesterol, na.rm = TRUE)
+bp_med   <- median(dummy_heart$RestingBP,   na.rm = TRUE)
+
+dummy_heart$Cholesterol[is.na(dummy_heart$Cholesterol)] <- chol_med
+dummy_heart$RestingBP[is.na(dummy_heart$RestingBP)]     <- bp_med
+
 # Scale predictors only (excluding HeartDisease so clustering & PCA are unsupervised)
 scaled_predictors <- scale(dummy_heart[, colnames(dummy_heart) != "HeartDisease"])
 ```
@@ -50,6 +60,13 @@ plot(2:10, avg_sil[2:10], type = "b", pch = 19, frame = FALSE,
      ylab = "Average Silhouette Width",
      main = "Silhouette Method to Choose K")
 ```
+```{r}
+pairs(~ Age + RestingBP + Cholesterol + MaxHR + Oldpeak, 
+      data = dummy_heart,
+      main = "Pairwise Scatter Plot of Heart Data",
+      pch = 19)
+```
+
 
 ```{r pca-kmeans-fit}
 k <- 3
