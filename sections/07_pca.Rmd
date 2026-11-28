@@ -18,14 +18,14 @@ dummy_heart <- dummy_cols(
 dummy_heart$Cholesterol[dummy_heart$Cholesterol == 0] <- NA
 dummy_heart$RestingBP[dummy_heart$RestingBP == 0]     <- NA
 
-# 2. Impute with dataset medians
+
 chol_med <- median(dummy_heart$Cholesterol, na.rm = TRUE)
 bp_med   <- median(dummy_heart$RestingBP,   na.rm = TRUE)
 
 dummy_heart$Cholesterol[is.na(dummy_heart$Cholesterol)] <- chol_med
 dummy_heart$RestingBP[is.na(dummy_heart$RestingBP)]     <- bp_med
 
-# Scale predictors only (excluding HeartDisease so clustering & PCA are unsupervised)
+
 scaled_predictors <- scale(dummy_heart[, colnames(dummy_heart) != "HeartDisease"])
 ```
 
